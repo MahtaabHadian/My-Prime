@@ -1,7 +1,8 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hive/hive.dart';
+import 'package:my_prime/data/database.dart';
 import 'package:my_prime/project_deatils.dart';
 import 'package:my_prime/Project.dart';
 import 'colors.dart';
@@ -9,15 +10,18 @@ import 'colors.dart';
 class HomePage extends StatefulWidget {
   final String name;
   final String selectedImage;
+  final Box myBox;
+  const HomePage({super.key, required this.name, required this.selectedImage, required this.myBox});
 
-  const HomePage({super.key, required this.name, required this.selectedImage});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  List<Map<String, dynamic>> projects = [];
+  late Box _myBox;
+  ProjData pdb = ProjData();
+  bool isLoading = true;
 
   final List<String> backgroundImages = [
     "assets/img/bg.png",
@@ -26,10 +30,29 @@ class _HomePageState extends State<HomePage> {
     "assets/img/bg4.png",
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _myBox = widget.myBox;
+    pdb.setBox(_myBox);
+
+    if (_myBox.get("projects") == null) {
+      pdb.createInitialData();
+    } else {
+      pdb.loadData();
+    }
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+
+
+
+
   void showAddProjectDialog(BuildContext context) {
     final TextEditingController _projectNameController = TextEditingController();
     final random = Random();
-
 
     showDialog(
       context: context,
@@ -78,21 +101,21 @@ class _HomePageState extends State<HomePage> {
                 ElevatedButton(
                   onPressed: () {
                     String projectName = _projectNameController.text.trim();
-
                     if (projectName.isNotEmpty) {
                       final randomImage = backgroundImages[random.nextInt(backgroundImages.length)];
                       setState(() {
-                        projects.add({
-                          'name': projectName,
+                        pdb.addProject({
+                          'projectName': projectName,
                           'done': 0,
                           'total': 0,
                           'randomImage': randomImage,
+                          'tasks': [],
                         });
-
                       });
                       Navigator.of(context).pop();
                     }
                   },
+
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Primary,
                     shape: RoundedRectangleBorder(
@@ -107,6 +130,25 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
+  }
+
+  void loadBox() async {
+    print("شروع loadBox");
+    _myBox = await Hive.openBox("mybox");
+    pdb.setBox(_myBox);
+
+    if (_myBox.get("projects") == null) {
+      pdb.createInitialData();
+      print("دیتا اولیه ساخته شد");
+    } else {
+      pdb.loadData();
+      print("دیتا لود شد");
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+    print("پایان loadBox");
   }
 
   @override
@@ -144,7 +186,9 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      body: SafeArea(
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : SafeArea(
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 25),
@@ -203,11 +247,8 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 30),
-
-                // Project List OR Empty State
-                projects.isEmpty
+                pdb.projects.isEmpty
                     ? Padding(
                   padding: const EdgeInsets.only(top: 60),
                   child: Column(
@@ -225,19 +266,24 @@ class _HomePageState extends State<HomePage> {
                     : ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: projects.length,
+                  itemCount: pdb.projects.length,
                   itemBuilder: (context, index) {
-                    final project = projects[index];
+                    final project = pdb.projects[index];
+                    final List tasks = project['tasks'] ?? [];
+                    final int totalTasks = tasks.length;
+                    final int completedTasks = tasks.where((task) => task['isDone'] == true).length;
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: InkWell(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) =>
-                            ProjectDetailsScreen(
-                              projectName: project['name'],
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProjectDetailsScreen(
+                              projectName: project['projectName'],
                               projectImage: project['randomImage'],
                               onEdit: () {
-                                TextEditingController editController = TextEditingController(text: project['name']);
+                                TextEditingController editController = TextEditingController(text: project['projectName']);
                                 showDialog(
                                   context: context,
                                   builder: (context) {
@@ -265,7 +311,8 @@ class _HomePageState extends State<HomePage> {
                                         ElevatedButton(
                                           onPressed: () {
                                             setState(() {
-                                              projects[index]['name'] = editController.text.trim();
+                                              pdb.projects[index]['projectName'] = editController.text.trim();
+                                              pdb.updateData();
                                             });
                                             Navigator.pop(context);
                                           },
@@ -277,23 +324,28 @@ class _HomePageState extends State<HomePage> {
                                   },
                                 );
                               },
-                                onDelete: () {
-                                  setState(() {
-                                    projects.removeAt(index);
-                                  });
-                                },)),),
+                              onDelete: () {
+                                setState(() {
+                                  pdb.projects.removeAt(index);
+                                  pdb.updateData();
+                                });
+                              },
+                            ),
+                          ),
+                        ),
                         child: ProjectCard(
-                          projectName: project['name'],
-                          completedTasks: project['done'],
-                          totalTasks: project['total'],
+                          projectName: project['projectName'],
+                          completedTasks: completedTasks,
+                          totalTasks: totalTasks,
                           randomImage: project['randomImage'],
                           onAddTask: () {
                             setState(() {
-                              projects[index]['total'] += 1;
+                              pdb.projects[index]['tasks'].add({"taskName": "New Task", "isDone": false});
+                              pdb.updateData();
                             });
                           },
                           onEdit: () {
-                            TextEditingController editController = TextEditingController(text: project['name']);
+                            TextEditingController editController = TextEditingController(text: project['projectName']);
                             showDialog(
                               context: context,
                               builder: (context) {
@@ -321,7 +373,8 @@ class _HomePageState extends State<HomePage> {
                                     ElevatedButton(
                                       onPressed: () {
                                         setState(() {
-                                          projects[index]['name'] = editController.text.trim();
+                                          pdb.projects[index]['projectName'] = editController.text.trim();
+                                          pdb.updateData();
                                         });
                                         Navigator.pop(context);
                                       },
@@ -335,7 +388,8 @@ class _HomePageState extends State<HomePage> {
                           },
                           onDelete: () {
                             setState(() {
-                              projects.removeAt(index);
+                              pdb.projects.removeAt(index);
+                              pdb.updateData();
                             });
                           },
                         ),
@@ -343,8 +397,6 @@ class _HomePageState extends State<HomePage> {
                     );
                   },
                 )
-
-
               ],
             ),
           ),

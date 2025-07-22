@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:my_prime/colors.dart';
 import 'Task.dart';
 import 'add_task.dart';
@@ -8,6 +9,8 @@ class ProjectDetailsScreen extends StatefulWidget {
   final String projectImage;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  late Box<Task> taskBox;
+
 
   ProjectDetailsScreen({
     super.key,
@@ -25,27 +28,48 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   List<Task> tasks = [];
   Task? lastAddedTask;
 
-  int get completedTasks => tasks.where((task) => task.isDone).length;
+  int get completedTasks =>
+      tasks
+          .where((task) => task.isDone)
+          .length;
+
   int get totalTasks => tasks.length;
 
-  void _addTask(Task task) {
+
+  void _addTask(Task task) async {
+    final box = await Hive.openBox<Task>('tasks_${widget.projectName}');
+    await box.add(task);
     setState(() {
       tasks.add(task);
       lastAddedTask = task;
     });
   }
 
-  void _toggleTaskDone(Task task) {
-    setState(() {
+
+  void _toggleTaskDone(Task task) async {
+    final index = tasks.indexOf(task);
+    if (index != -1) {
+      final box = await Hive.openBox<Task>('tasks_${widget.projectName}');
       task.isDone = !task.isDone;
-    });
+      await box.putAt(index, task);
+      setState(() {});
+    }
   }
 
-  void _deleteTask(Task task) {
-    setState(() {
-      tasks.remove(task);
-    });
+
+  void _deleteTask(Task task) async {
+    final box = await Hive.openBox<Task>('tasks_${widget.projectName}');
+    final index = tasks.indexOf(task);
+    if (index != -1) {
+      await box.deleteAt(index);
+      setState(() {
+        tasks.removeAt(index);
+      });
+    }
   }
+
+
+
 
   Color _getPriorityColor(int index) {
     switch (index) {
@@ -68,6 +92,18 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     return Primary;
   }
 
+  void initState() {
+    super.initState();
+    _loadTasks();
+  }
+
+  void _loadTasks() async {
+    final box = await Hive.openBox<Task>('tasks_${widget.projectName}');
+    setState(() {
+      tasks = box.values.toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     double progress = totalTasks == 0 ? 0 : completedTasks / totalTasks;
@@ -88,32 +124,13 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
             color: Colors.black.withOpacity(0.7),
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+            icon: const Icon(
+                Icons.arrow_back_ios_new_rounded, color: Colors.white),
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 25),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(90),
-                color: Colors.black.withOpacity(0.7),
-              ),
-              child: PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'edit') widget.onEdit();
-                  if (value == 'delete') widget.onDelete();
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'edit', child: Text('ویرایش')),
-                  const PopupMenuItem(value: 'delete', child: Text('حذف')),
-                ],
-                icon: const Icon(Icons.more_vert, color: Colors.white),
-              ),
-            ),
-          ),
-        ],
+
+
       ),
       extendBodyBehindAppBar: true,
       body: SingleChildScrollView(
@@ -136,14 +153,16 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                 child: Align(
                   alignment: Alignment.bottomRight,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 20),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 3, vertical: 20),
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(60),
                         color: Colors.white,
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 15, vertical: 5),
                         child: Text(
                           widget.projectName,
                           style: const TextStyle(
@@ -220,10 +239,12 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                               Text(
                                 task.title,
                                 style: TextStyle(
-                                  color: task.isDone ? Colors.grey : Colors.black,
-                                  decoration: task.isDone ? TextDecoration.lineThrough : null,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 20
+                                    color: task.isDone ? Colors.grey : Colors
+                                        .black,
+                                    decoration: task.isDone ? TextDecoration
+                                        .lineThrough : null,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 20
                                 ),
                               ),
                               SizedBox(
@@ -231,13 +252,16 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                               ),
                               Container(
                                 decoration: BoxDecoration(
-                                  color:task.isDone ?  Colors.grey : _getPriorityColor(task.priority).withOpacity(0.3),
-                                  borderRadius: BorderRadius.circular(10)
+                                    color: task.isDone
+                                        ? Colors.grey
+                                        : _getPriorityColor(task.priority)
+                                        .withOpacity(0.3),
+                                    borderRadius: BorderRadius.circular(10)
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(6),
                                   child: Text(task.date, style: TextStyle(
-                                    fontSize: 15
+                                      fontSize: 15
                                   ),),
                                 ),
                               )
@@ -256,10 +280,12 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                             child: Column(
 
                               children: [
-                                Image.asset("assets/img/arrow.png", height: 80, width: 220,),
+                                Image.asset("assets/img/arrow.png", height: 80,
+                                  width: 220,),
                                 Text(
                                   'برای حذف کردن تسک رو به سمت راست بکش',
-                                  style: TextStyle(color: Color(0xffdabd7c), fontWeight: FontWeight.w700),
+                                  style: TextStyle(color: Color(0xffdabd7c),
+                                      fontWeight: FontWeight.w700),
                                 ),
                               ],
                             ),
@@ -310,4 +336,5 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       ),
     );
   }
+
 }

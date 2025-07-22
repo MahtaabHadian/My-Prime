@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hive/hive.dart';
 
 import 'colors.dart';
 import 'home_page.dart';
 
 class Setup extends StatefulWidget {
-  const Setup({super.key});
+  final Box myBox;
+  const Setup({super.key, required this.myBox});
 
   @override
   State<Setup> createState() => _SetupState();
@@ -14,6 +16,7 @@ class Setup extends StatefulWidget {
 class _SetupState extends State<Setup> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
+
 
   List<String> images = [
     'assets/img/pfp/1.png',
@@ -45,13 +48,30 @@ class _SetupState extends State<Setup> {
       String name = _nameController.text.trim();
       String selectedImage = images[selectedIndex!];
 
-      Navigator.push(context, MaterialPageRoute(builder: (_) => HomePage(name: name, selectedImage: selectedImage)));
+      // ذخیره‌سازی در Hive
+      widget.myBox.put("userName", name);
+      widget.myBox.put("userImage", selectedImage);
+      widget.myBox.put("isSetupDone", true);  // پرچم اینکه کاربر ثبت‌نام کرده
+
+      // رفتن به صفحه‌ی Home
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HomePage(
+            name: name,
+            selectedImage: selectedImage,
+            myBox: widget.myBox,
+          ),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('لطفاً نام و پروفایل را انتخاب کنید')),
       );
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {

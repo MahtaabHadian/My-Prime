@@ -6,12 +6,14 @@ import 'package:my_prime/home_page.dart';
 import 'package:my_prime/project_deatils.dart';
 import 'package:my_prime/setup.dart';
 
+import 'Task.dart';
 import 'add_task.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   var box = await Hive.openBox("mybox");
+  Hive.registerAdapter(TaskAdapter());
 
   bool isSetupDone = box.get("isSetupDone", defaultValue: false);
 

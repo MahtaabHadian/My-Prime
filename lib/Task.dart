@@ -16,10 +16,14 @@ class Task extends HiveObject {
   @HiveField(3)
   bool isDone;
 
+  @HiveField(4)
+  String projectName; // اضافه کردن فیلد projectName
+
   Task({
     required this.title,
     required this.date,
     required this.priority,
+    required this.projectName,
     this.isDone = false,
   });
 
@@ -28,6 +32,7 @@ class Task extends HiveObject {
       title: map['title'],
       date: map['date'],
       priority: map['priority'],
+      projectName: map['projectName'],
       isDone: map['isDone'] ?? false,
     );
   }
@@ -37,6 +42,7 @@ class Task extends HiveObject {
       'title': title,
       'date': date,
       'priority': priority,
+      'projectName': projectName,
       'isDone': isDone,
     };
   }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 
-import 'colors.dart';
+import 'base/colors.dart';
 import 'home_page.dart';
 
 class Setup extends StatefulWidget {
@@ -48,12 +48,10 @@ class _SetupState extends State<Setup> {
       String name = _nameController.text.trim();
       String selectedImage = images[selectedIndex!];
 
-      // ذخیره‌سازی در Hive
       widget.myBox.put("userName", name);
       widget.myBox.put("userImage", selectedImage);
-      widget.myBox.put("isSetupDone", true);  // پرچم اینکه کاربر ثبت‌نام کرده
+      widget.myBox.put("isSetupDone", true);
 
-      // رفتن به صفحه‌ی Home
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -106,7 +104,7 @@ class _SetupState extends State<Setup> {
                       setState(() {});
                     },
                     child: TextFormField(
-                      maxLength: 25,
+                      maxLength: 22,
                       inputFormatters: [
                         LengthLimitingTextInputFormatter(30),
                       ],

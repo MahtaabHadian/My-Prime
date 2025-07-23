@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'colors.dart';
+import 'base/colors.dart';
 
 class AddTask extends StatefulWidget {
   final String projectName;
@@ -59,10 +59,8 @@ class _AddTaskState extends State<AddTask> {
         'projectName': widget.projectName,
         'isDone': false,
       };
-      print('AddTask: Submitting task: $newTaskMap');
       Navigator.pop(context, newTaskMap);
     } else {
-      print('AddTask: Form validation failed');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('لطفاً عنوان تسک را وارد کنید')),
       );
@@ -91,7 +89,6 @@ class _AddTaskState extends State<AddTask> {
                           alignment: Alignment.topRight,
                           child: GestureDetector(
                             onTap: () {
-                              print('AddTask: Back button pressed');
                               Navigator.pop(context);
                             },
                             child: Container(
@@ -139,7 +136,6 @@ class _AddTaskState extends State<AddTask> {
                               onTap: () {
                                 setState(() {
                                   selectedDateIndex = index;
-                                  print('AddTask: Selected date: ${dateOptions[index]}');
                                 });
                               },
                               child: Container(
@@ -177,7 +173,7 @@ class _AddTaskState extends State<AddTask> {
                         padding: const EdgeInsets.symmetric(horizontal: 25),
                         child: TextFormField(
                           controller: _workController,
-                          maxLength: 50,
+                          maxLength: 40,
                           decoration: InputDecoration(
                             filled: true,
                             fillColor: TextFieldColor,
@@ -198,7 +194,6 @@ class _AddTaskState extends State<AddTask> {
                             return null;
                           },
                           onChanged: (value) {
-                            print('AddTask: Title input: $value');
                           },
                         ),
                       ),
@@ -222,7 +217,6 @@ class _AddTaskState extends State<AddTask> {
                               onTap: () {
                                 setState(() {
                                   selectedPriorityIndex = index;
-                                  print('AddTask: Selected priority: ${priorityOptions[index]}');
                                 });
                               },
                               child: Container(

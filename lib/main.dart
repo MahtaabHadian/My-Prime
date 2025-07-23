@@ -3,19 +3,27 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:my_prime/home_page.dart';
-import 'package:my_prime/project_deatils.dart';
 import 'package:my_prime/setup.dart';
-
-import 'Task.dart';
-import 'add_task.dart';
+import 'package:my_prime/models/Task.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  var box = await Hive.openBox("mybox");
   Hive.registerAdapter(TaskAdapter());
+  var box = await Hive.openBox("mybox");
+  await Hive.openBox<Task>("tasks_box");
 
   bool isSetupDone = box.get("isSetupDone", defaultValue: false);
+  void main() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await Hive.initFlutter();
+    Hive.registerAdapter(TaskAdapter());
+    var box = await Hive.openBox("mybox");
+    await Hive.openBox<Task>("tasks_box");
+    bool isSetupDone = box.get("isSetupDone", defaultValue: false);
+    runApp(MyApp(myBox: box, isSetupDone: isSetupDone));
+    await Hive.close();
+  }
 
   runApp(MyApp(myBox: box, isSetupDone: isSetupDone));
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'colors.dart';
-import 'Task.dart';
+import 'base/colors.dart';
+import 'models/Task.dart';
 import 'add_task.dart';
 
 class ProjectDetailsScreen extends StatefulWidget {
@@ -38,11 +38,9 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
   Future<void> _initHive() async {
     try {
-      taskBox = await Hive.openBox<Task>('tasks_box');
-      print('ProjectDetails: Hive box opened: tasks_box');
+      taskBox = Hive.box<Task>('tasks_box');
       await _loadTasks();
     } catch (e) {
-      print('ProjectDetails: Error opening Hive box: $e');
     }
   }
 
@@ -50,60 +48,46 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     try {
       setState(() {
         tasks = taskBox.values.where((task) => task.projectName == widget.projectName).toList();
-        print('ProjectDetails: Loaded tasks for ${widget.projectName}: ${tasks.length}');
       });
     } catch (e) {
-      print('ProjectDetails: Error loading tasks: $e');
     }
   }
 
   Future<void> _addTask(Task task) async {
     try {
       await taskBox.add(task);
-      print('ProjectDetails: Task added to Hive: ${task.title}, key: ${task.key}');
       setState(() {
         tasks = taskBox.values.where((task) => task.projectName == widget.projectName).toList();
         lastAddedTask = task;
-        print('ProjectDetails: Updated tasks list: ${tasks.length}');
       });
     } catch (e) {
-      print('ProjectDetails: Error adding task to Hive: $e');
     }
   }
 
   Future<void> _toggleTaskDone(Task task) async {
     try {
-      print('ProjectDetails: Attempting to toggle task: ${task.title}, current isDone: ${task.isDone}, key: ${task.key}');
       if (task.key == null) {
-        print('ProjectDetails: Task key is null, cannot toggle');
         return;
       }
       task.isDone = !task.isDone;
       await taskBox.put(task.key, task);
-      print('ProjectDetails: Task updated in Hive: ${task.title}, new isDone: ${task.isDone}');
       setState(() {
         tasks = taskBox.values.where((task) => task.projectName == widget.projectName).toList();
-        print('ProjectDetails: Updated tasks list after toggle: ${tasks.length}');
       });
     } catch (e) {
-      print('ProjectDetails: Error toggling task: $e');
     }
   }
 
   Future<void> _deleteTask(Task task) async {
     try {
       if (task.key == null) {
-        print('ProjectDetails: Task key is null, cannot delete');
         return;
       }
       await taskBox.delete(task.key);
-      print('ProjectDetails: Task deleted from Hive: ${task.title}');
       setState(() {
         tasks = taskBox.values.where((task) => task.projectName == widget.projectName).toList();
-        print('ProjectDetails: Updated tasks list after delete: ${tasks.length}');
       });
     } catch (e) {
-      print('ProjectDetails: Error deleting task: $e');
     }
   }
 
@@ -150,7 +134,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
           child: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
             onPressed: () {
-              print('ProjectDetails: Back button pressed');
               Navigator.pop(context);
             },
           ),
@@ -256,7 +239,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                           activeColor: _getButtonColor(widget.projectImage),
                           value: task.isDone,
                           onChanged: (value) {
-                            print('ProjectDetails: Checkbox tapped for task: ${task.title}');
                             _toggleTaskDone(task);
                           },
                           title: Row(
@@ -348,7 +330,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
               borderRadius: BorderRadius.circular(30),
             ),
             onPressed: () async {
-              print('ProjectDetails: Opening AddTask screen');
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -356,11 +337,9 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                 ),
               );
               if (result != null && result is Map<String, dynamic>) {
-                print('ProjectDetails: Received task: $result');
                 final newTask = Task.fromMap(result);
                 await _addTask(newTask);
               } else {
-                print('ProjectDetails: No task received or invalid data');
               }
             },
             child: const Icon(Icons.add, size: 30, color: Colors.white),
@@ -372,8 +351,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
   @override
   void dispose() {
-    print('ProjectDetails: Closing Hive box');
-    taskBox.close();
     super.dispose();
   }
 }

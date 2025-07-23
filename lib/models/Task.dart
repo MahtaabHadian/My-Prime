@@ -1,6 +1,6 @@
 import 'package:hive/hive.dart';
 
-part 'Task.g.dart';
+part '../Task.g.dart';
 
 @HiveType(typeId: 0)
 class Task extends HiveObject {
@@ -17,7 +17,7 @@ class Task extends HiveObject {
   bool isDone;
 
   @HiveField(4)
-  String projectName; // اضافه کردن فیلد projectName
+  String projectName;
 
   Task({
     required this.title,
